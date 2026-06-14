@@ -957,12 +957,8 @@ function exportImg(){
 }
 function doSave(){
   const name=document.getElementById('save-filename').value.trim()||'chart';
-  const s=selected;selected=null;
-  const savedOpacities=parts.map(p=>p.opacity);
-  parts.forEach(p=>p.opacity=100);
-  render();
+  const s=selected;selected=null;render();
   const a=document.createElement('a');a.href=mc.toDataURL('image/png');a.download=`${name}.png`;a.click();
-  parts.forEach((p,i)=>p.opacity=savedOpacities[i]);
   selected=s;render();closeSaveModal();
   toast(`「${name}.png」を保存しました！`,'ok');
   if(pendingNewProject){
