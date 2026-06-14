@@ -285,7 +285,6 @@ document.getElementById('file-bg').addEventListener('change',e=>{
   const r=new FileReader();
   r.onload=async ev=>{
     bgImg=await loadImg(ev.target.result);
-    document.getElementById('bg-zone').innerHTML=`<img src="${ev.target.result}"/>`;
     render();toast('背景を設定しました','ok');
   };
   r.readAsDataURL(f);e.target.value='';
@@ -922,7 +921,6 @@ function deleteSelected(){if(!selected)return;parts=parts.filter(p=>p.id!==selec
 
 // ===== NEW PROJECT =====
 function newProject(){
-  // confirmを使わずに直接ファイル選択（ブラウザのセキュリティ制限対策）
   bgImg=null;parts=[];selected=null;dragMode=null;
   render();renderLayers();updateColorPanel();
   document.getElementById('file-bg').click();
