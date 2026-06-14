@@ -863,10 +863,11 @@ function startVoiceRecognition(btn){
   function stopVoice(){
     voiceActive=false;
     clearTimeout(silenceTimer);
-    recognition?.stop();
     if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
     const ind=document.getElementById('voice-indicator');
     if(ind)ind.style.display='none';
+    // recognition.stop()は呼ばずに即確定（onendのラグを避ける）
+    recognition=null;
     if(!finalTranscript)return;
     const content=finalTranscript.trim();
     if(!content)return;
