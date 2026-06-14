@@ -122,6 +122,12 @@ input[type=range]{width:100%;accent-color:var(--accent);}
     <span style="font-size:10px;color:var(--muted);">塗</span>
   </div>
 
+  <!-- テキスト・クリアボタン -->
+  <div style="display:flex;gap:5px;padding:0 7px 8px;">
+    <button class="shape-btn" onclick="openTextModal()" style="flex:2;">テキスト追加</button>
+    <button class="shape-btn" onclick="clearAll()" style="flex:1;color:var(--red);border-color:var(--red);">🗑 全消去</button>
+  </div>
+
   <div class="sec-title">✅ 使ったパーツ</div>
   <div id="saved-parts"><div style="text-align:center;color:var(--muted);font-size:11px;padding:12px 0;">素材シートから<br>ドラッグで範囲を選んでください</div></div>
 </div>
@@ -130,15 +136,16 @@ input[type=range]{width:100%;accent-color:var(--accent);}
 <div id="center">
   <div id="toolbar">
     <button class="tb-btn" onclick="newProject()" style="border-color:#4caf50;color:#4caf50;">📄 新規作成</button>
-    <div class="tb-sep"></div>
-    <button class="tb-btn" onclick="clearAll()">🗑 パーツ全クリア</button>
-    <div class="tb-sep"></div>
-    <button class="tb-btn" onclick="openTextModal()">テキスト追加</button>
     <button class="tb-btn" onclick="exportImg()" style="margin-left:auto;background:var(--accent);color:white;border-color:var(--accent);">💾 画像を保存</button>
   </div>
   <div id="canvas-wrap">
     <canvas id="main-canvas"></canvas>
     <div id="text-overlay" style="display:none;position:absolute;z-index:50;"></div>
+    <div id="text-hint" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;pointer-events:none;z-index:40;">
+      <div style="background:rgba(124,92,252,0.85);color:white;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.4);">
+        テキストを置きたい場所をクリックしてください
+      </div>
+    </div>
   </div>
 </div>
 
@@ -654,11 +661,16 @@ function setOverlayOp(v){overlayOp=+v;document.getElementById('v-overlay').textC
 function openTextModal(){
   shapeMode=null;document.querySelectorAll('.shape-btn').forEach(b=>b.classList.remove('active'));
   textMode=true;mc.style.cursor='text';
-  toast('テキストを置きたい場所をクリックしてください');
+  // キャンバス上にヒントを表示
+  const hint=document.getElementById('text-hint');
+  if(hint)hint.style.display='flex';
 }
 
 function placeTextOverlay(canvasX,canvasY){
   textMode=false;mc.style.cursor='default';
+  // ヒントを非表示
+  const hint=document.getElementById('text-hint');
+  if(hint)hint.style.display='none';
   textPos={x:canvasX,y:canvasY};
   const overlay=document.getElementById('text-overlay');
   overlay.style.left=canvasX+'px';overlay.style.top=canvasY+'px';overlay.style.display='block';
@@ -694,7 +706,12 @@ function initTextUI(){
   ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});
   ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
   ta.addEventListener('keydown',e=>{
-    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ta.closest('[onclick]')?ta.closest('[onclick]').click():document.querySelector('[onclick*="commitText"]')?.click();}
+    if(e.key==='Enter'&&!e.shiftKey){
+      e.preventDefault();
+      // 音声入力中なら先に停止
+      if(voiceActive&&recognition){recognition.stop();}
+      document.querySelector('[onclick*="commitText"]')?.click();
+    }
     if(e.key==='Escape')cancelText();
   });
   document.getElementById('txt-size').addEventListener('input',e=>{
@@ -714,14 +731,41 @@ function toggleVoice(){
   if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){toast('Chromeのみ対応','err');return;}
   if(voiceActive){recognition?.stop();voiceActive=false;if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}return;}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  recognition=new SR();recognition.lang='ja-JP';recognition.continuous=false;recognition.interimResults=false;
-  recognition.onstart=()=>{voiceActive=true;if(btn){btn.style.background='#f44336';btn.textContent='⏹';}toast('音声入力中...','ok');};
+  let finalTranscript='';
+  recognition=new SR();
+  recognition.lang='ja-JP';
+  recognition.continuous=true;
+  recognition.interimResults=true;
+  recognition.onstart=()=>{
+    voiceActive=true;finalTranscript='';
+    if(btn){btn.style.background='#f44336';btn.textContent='⏹ 停止';}
+    toast('音声入力中... 話し終わったら⏹を押してください','ok');
+  };
   recognition.onresult=e=>{
     const ta=document.getElementById('txt-inline');if(!ta)return;
-    let final='';for(let i=0;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript;}
-    if(final){ta.value=final;ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)finalTranscript+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
+    }
+    ta.value=finalTranscript+(interim?'['+interim+']':'');
+    ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
   };
-  recognition.onerror=recognition.onend=()=>{voiceActive=false;if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}};
+  recognition.onerror=e=>{
+    toast('音声入力エラー: '+e.error,'err');
+    voiceActive=false;if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
+  };
+  recognition.onend=()=>{
+    voiceActive=false;
+    if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
+    // 最終結果をテキストエリアに確定してフォーカスを戻す
+    const ta=document.getElementById('txt-inline');
+    if(ta){
+      if(finalTranscript)ta.value=finalTranscript;
+      ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
+      ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
+    }
+  };
   recognition.start();
 }
 
@@ -760,6 +804,7 @@ function commitText(isEdit=false,editId=null){
 function cancelText(){
   recognition?.stop();voiceActive=false;isBold=false;
   document.getElementById('text-overlay').style.display='none';
+  const hint=document.getElementById('text-hint');if(hint)hint.style.display='none';
   mc.style.cursor='default';textMode=false;
 }
 
