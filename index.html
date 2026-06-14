@@ -115,6 +115,7 @@ input[type=range]{width:100%;accent-color:var(--accent);}
   </div>
   <div style="display:flex;gap:5px;padding:0 7px 8px;">
     <button class="shape-btn" onclick="openTextModal()" style="flex:2;">テキスト追加</button>
+    <button class="shape-btn" onclick="openVoiceModal()" style="flex:1.5;border-color:#4caf50;color:#4caf50;">🎤 音声</button>
     <button class="shape-btn" onclick="clearAll()" style="flex:1;color:var(--red);border-color:var(--red);">🗑 全消去</button>
   </div>
 </div>
@@ -764,6 +765,14 @@ function openTextModal(){
   // キャンバス中央にすぐ入力欄を表示
   const x=mc.width/2-100, y=mc.height/2-20;
   placeTextOverlay(x,y);
+}
+
+function openVoiceModal(){
+  shapeMode=null;document.querySelectorAll('.shape-btn').forEach(b=>b.classList.remove('active'));
+  const x=mc.width/2-100, y=mc.height/2-20;
+  placeTextOverlay(x,y);
+  // 入力欄表示後すぐに音声入力開始
+  setTimeout(()=>toggleVoice(),150);
 }
 
 function placeTextOverlay(canvasX,canvasY){
