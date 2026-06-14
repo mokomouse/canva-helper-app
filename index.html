@@ -124,6 +124,7 @@ input[type=range]{width:100%;accent-color:var(--accent);}
 <div id="center">
   <div id="toolbar">
     <button class="tb-btn" onclick="newProject()" style="border-color:#4caf50;color:#4caf50;">📄 新規作成</button>
+    <div id="voice-indicator" style="display:none;background:#f44336;color:white;padding:4px 12px;border-radius:7px;font-size:12px;font-weight:600;">🎤 音声入力中... ⏹で停止</div>
     <button class="tb-btn" onclick="exportImg()" style="margin-left:auto;background:var(--accent);color:white;border-color:var(--accent);">💾 画像を保存</button>
   </div>
   <div id="canvas-wrap">
@@ -846,6 +847,8 @@ function toggleVoice(){
     recognition.onstart=()=>{
       voiceActive=true;
       if(btn){btn.style.background='#f44336';btn.textContent='⏹ 停止';}
+      const ind=document.getElementById('voice-indicator');
+      if(ind)ind.style.display='block';
     };
     recognition.onresult=e=>{
       const ta=document.getElementById('txt-inline');if(!ta)return;
@@ -865,12 +868,10 @@ function toggleVoice(){
       voiceActive=false;if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
     };
     recognition.onend=()=>{
-      // 停止ボタンが押されていなければ再起動
-      if(voiceActive){
-        startRecognition();
-        return;
-      }
+      if(voiceActive){startRecognition();return;}
       if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
+      const ind=document.getElementById('voice-indicator');
+      if(ind)ind.style.display='none';
       const ta=document.getElementById('txt-inline');
       if(ta){
         if(finalTranscript)ta.value=finalTranscript;
@@ -880,7 +881,6 @@ function toggleVoice(){
     };
     recognition.start();
   }
-  toast('音声入力中... 話し終わったら⏹を押してください','ok');
   startRecognition();
 }
 
