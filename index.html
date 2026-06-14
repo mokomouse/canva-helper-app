@@ -922,16 +922,10 @@ function deleteSelected(){if(!selected)return;parts=parts.filter(p=>p.id!==selec
 
 // ===== NEW PROJECT =====
 function newProject(){
-  const hasBg=!!bgImg,hasParts=parts.length>0;
-  if(hasBg||hasParts){
-    const save=confirm('編集中の内容を保存しますか？\n\n「OK」→保存してから新規作成\n「キャンセル」→保存せずに新規作成');
-    if(save)exportImg();
-  }
+  // confirmを使わずに直接ファイル選択（ブラウザのセキュリティ制限対策）
   bgImg=null;parts=[];selected=null;dragMode=null;
   render();renderLayers();updateColorPanel();
-  // 新規作成後にファイル選択を開く
   document.getElementById('file-bg').click();
-  toast('新規作成しました','ok');
 }
 
 function clearAll(){if(!confirm('すべてのパーツを削除しますか？'))return;parts=[];selected=null;render();renderLayers();updateColorPanel();}
