@@ -489,7 +489,7 @@ function cropAndAdd(){
   selRect.style.display='none';closePicker();
   const img=new Image();
   img.onload=()=>{
-    const maxW=Math.min(sw,mc.width*0.18),sc=maxW/sw,w=sw*sc,h=sh*sc;
+    const sc=Math.min(mc.width*0.18/sw, mc.height*0.18/sh, 1)*0.5,w=sw*sc,h=sh*sc;
     const part={id:nextId++,name:`パーツ${nextId-1}`,img,src,
       x:(mc.width-w)/2,y:(mc.height-h)/2,w,h,baseW:w,baseH:h,
       scale:100,opacity:100,rotate:0,flipH:false};
@@ -511,7 +511,7 @@ function addSavedPart(src,name){
     if(ev.target.classList.contains('saved-del'))return;
     const img=await loadImg(src);
     const sw=img.naturalWidth,sh=img.naturalHeight;
-    const maxW=Math.min(sw,mc.width*0.18),sc=maxW/sw,w=sw*sc,h=sh*sc;
+    const sc=Math.min(mc.width*0.18/sw, mc.height*0.18/sh, 1)*0.5,w=sw*sc,h=sh*sc;
     const part={id:nextId++,name,img,src,x:(mc.width-w)/2,y:(mc.height-h)/2,w,h,baseW:w,baseH:h,scale:100,opacity:100,rotate:0,flipH:false};
     parts.push(part);selected=part;render();renderLayers();updateColorPanel();toast('再配置しました','ok');
   };
