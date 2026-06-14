@@ -836,63 +836,73 @@ function toggleBold(btn){
 function toggleVoice(){
   const btn=document.getElementById('voice-btn');
   if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){toast('Chromeのみ対応','err');return;}
-  if(voiceActive){recognition?.stop();voiceActive=false;if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}return;}
+  if(voiceActive){
+    voiceActive=false;
+    recognition?.stop();
+    if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
+    const ind=document.getElementById('voice-indicator');
+    if(ind)ind.style.display='none';
+    return;
+  }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   let finalTranscript='';
-  function startRecognition(){
+  let silenceTimer=null;
+
+  function stopVoice(){
+    voiceActive=false;
+    clearTimeout(silenceTimer);
+    recognition?.stop();
+    if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
+    const ind=document.getElementById('voice-indicator');
+    if(ind)ind.style.display='none';
+    const ta=document.getElementById('txt-inline');
+    if(ta&&finalTranscript){
+      ta.value=finalTranscript;
+      ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
+      ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
+    }
+  }
+
+  function startRec(){
+    if(!voiceActive)return;
     recognition=new SR();
     recognition.lang='ja-JP';
     recognition.continuous=false;
     recognition.interimResults=false;
     recognition.onstart=()=>{
-      voiceActive=true;
       if(btn){btn.style.background='#f44336';btn.textContent='⏹ 停止';}
       const ind=document.getElementById('voice-indicator');
       if(ind)ind.style.display='block';
-    };
-    let silenceTimer=null;
-    recognition.onresult=e=>{
-      // 音声を検知したらタイマーリセット
+      // 開始から5秒無音で自動停止
       clearTimeout(silenceTimer);
+      silenceTimer=setTimeout(()=>stopVoice(),5000);
+    };
+    recognition.onresult=e=>{
       const ta=document.getElementById('txt-inline');if(!ta)return;
       for(let i=0;i<e.results.length;i++){
         if(e.results[i].isFinal)finalTranscript+=e.results[i][0].transcript;
       }
       ta.value=finalTranscript;
       ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
-      // 最後の音声から5秒で自動停止
-      silenceTimer=setTimeout(()=>{
-        if(voiceActive){voiceActive=false;recognition.stop();}
-      },5000);
+      // 話すたびに5秒リセット
+      clearTimeout(silenceTimer);
+      silenceTimer=setTimeout(()=>stopVoice(),5000);
     };
     recognition.onerror=e=>{
-      if(e.error==='no-speech'||e.error==='aborted'){return;}
-      toast('音声入力エラー: '+e.error,'err');
-      voiceActive=false;clearTimeout(silenceTimer);
-      if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
-      const ind=document.getElementById('voice-indicator');
-      if(ind)ind.style.display='none';
+      if(e.error==='no-speech'||e.error==='aborted')return;
+      toast('音声エラー: '+e.error,'err');
+      stopVoice();
     };
     recognition.onend=()=>{
-      clearTimeout(silenceTimer);
-      if(voiceActive){
-        // まだ停止していない（no-speech等）→ 再起動
-        setTimeout(()=>startRecognition(),200);
-        return;
-      }
-      if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
-      const ind=document.getElementById('voice-indicator');
-      if(ind)ind.style.display='none';
-      const ta=document.getElementById('txt-inline');
-      if(ta){
-        if(finalTranscript)ta.value=finalTranscript;
-        ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
-        ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
-      }
+      if(!voiceActive)return;
+      // 自動停止前なら再起動
+      setTimeout(()=>startRec(),100);
     };
     recognition.start();
   }
-  startRecognition();
+
+  voiceActive=true;
+  startRec();
 }
 
 function commitText(isEdit=false,editId=null){
