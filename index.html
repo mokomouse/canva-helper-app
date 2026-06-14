@@ -844,6 +844,18 @@ function toggleVoice(){
     if(ind)ind.style.display='none';
     return;
   }
+  // マイクの許可を明示的にリクエスト
+  navigator.mediaDevices.getUserMedia({audio:true})
+    .then(stream=>{
+      stream.getTracks().forEach(t=>t.stop()); // 許可取得後すぐ停止
+      startVoiceRecognition(btn);
+    })
+    .catch(()=>{
+      toast('マイクの許可が必要です。アドレスバーのアイコンから許可してください','err');
+    });
+}
+
+function startVoiceRecognition(btn){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   let finalTranscript='';
   let silenceTimer=null;
@@ -859,7 +871,8 @@ function toggleVoice(){
     if(ta&&finalTranscript){
       ta.value=finalTranscript;
       ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
-      ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
+      // 少し待ってから確定（DOMの更新を待つ）
+      setTimeout(()=>commitText(),100);
     }
   }
 
