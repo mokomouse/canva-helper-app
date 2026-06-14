@@ -850,25 +850,36 @@ function toggleVoice(){
       const ind=document.getElementById('voice-indicator');
       if(ind)ind.style.display='block';
     };
+    let silenceTimer=null;
     recognition.onresult=e=>{
+      // 音声を検知したらタイマーリセット
+      clearTimeout(silenceTimer);
       const ta=document.getElementById('txt-inline');if(!ta)return;
       for(let i=0;i<e.results.length;i++){
         if(e.results[i].isFinal)finalTranscript+=e.results[i][0].transcript;
       }
       ta.value=finalTranscript;
       ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';
+      // 最後の音声から5秒で自動停止
+      silenceTimer=setTimeout(()=>{
+        if(voiceActive){voiceActive=false;recognition.stop();}
+      },5000);
     };
     recognition.onerror=e=>{
-      if(e.error==='no-speech'){
-        // 無音の場合は再起動
-        if(voiceActive)startRecognition();
-        return;
-      }
+      if(e.error==='no-speech'||e.error==='aborted'){return;}
       toast('音声入力エラー: '+e.error,'err');
-      voiceActive=false;if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
+      voiceActive=false;clearTimeout(silenceTimer);
+      if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
+      const ind=document.getElementById('voice-indicator');
+      if(ind)ind.style.display='none';
     };
     recognition.onend=()=>{
-      if(voiceActive){startRecognition();return;}
+      clearTimeout(silenceTimer);
+      if(voiceActive){
+        // まだ停止していない（no-speech等）→ 再起動
+        setTimeout(()=>startRecognition(),200);
+        return;
+      }
       if(btn){btn.style.background='#1a1a2e';btn.textContent='🎤';}
       const ind=document.getElementById('voice-indicator');
       if(ind)ind.style.display='none';
