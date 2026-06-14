@@ -124,6 +124,7 @@ input[type=range]{width:100%;accent-color:var(--accent);}
 <div id="center">
   <div id="toolbar">
     <button class="tb-btn" onclick="newProject()" style="border-color:#4caf50;color:#4caf50;">📄 新規作成</button>
+    <button class="tb-btn" onclick="closeFile()" style="border-color:var(--red);color:var(--red);">✕ 閉じる</button>
     <div id="voice-indicator" style="display:none;background:#f44336;color:white;padding:4px 12px;border-radius:7px;font-size:12px;font-weight:600;">🎤 音声入力中... ⏹で停止</div>
     <button class="tb-btn" onclick="exportImg()" style="margin-left:auto;background:var(--accent);color:white;border-color:var(--accent);">💾 画像を保存</button>
   </div>
@@ -994,6 +995,19 @@ function renderLayers(){
 function deleteSelected(){if(!selected)return;parts=parts.filter(p=>p.id!==selected.id);selected=null;render();renderLayers();updateColorPanel();}
 
 // ===== NEW PROJECT =====
+function closeFile(){
+  if(!bgImg&&parts.length===0)return;
+  const save=confirm('編集中の内容を保存しますか？\n\n「OK」→保存してから閉じる\n「キャンセル」→保存せずに閉じる');
+  if(save){
+    pendingNewProject=true;
+    exportImg();
+    return;
+  }
+  bgImg=null;parts=[];selected=null;dragMode=null;
+  render();renderLayers();updateColorPanel();
+  toast('ファイルを閉じました');
+}
+
 function newProject(){
   if(bgImg||parts.length>0){
     const save=confirm('編集中の内容を保存しますか？\n\n「OK」→保存してから新規作成\n「キャンセル」→保存せずに新規作成');
