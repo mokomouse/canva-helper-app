@@ -999,8 +999,10 @@ function closeFile(){
   if(!bgImg&&parts.length===0)return;
   const save=confirm('編集中の内容を保存しますか？\n\n「OK」→保存してから閉じる\n「キャンセル」→保存せずに閉じる');
   if(save){
-    pendingNewProject=true;
+    // 保存後にリセット（ファイル選択は開かない）
     exportImg();
+    // doSave後にリセットするフラグ
+    pendingCloseFile=true;
     return;
   }
   bgImg=null;parts=[];selected=null;dragMode=null;
@@ -1027,6 +1029,7 @@ function clearAll(){if(!confirm('すべてのパーツを削除しますか？')
 
 // ===== SAVE =====
 let pendingNewProject=false;
+let pendingCloseFile=false;
 
 function exportImg(){
   const ts=new Date().toISOString().slice(0,10).replace(/-/g,'');
@@ -1045,6 +1048,12 @@ function doSave(){
     bgImg=null;parts=[];selected=null;dragMode=null;
     render();renderLayers();updateColorPanel();
     document.getElementById('file-bg').click();
+  }
+  if(pendingCloseFile){
+    pendingCloseFile=false;
+    bgImg=null;parts=[];selected=null;dragMode=null;
+    render();renderLayers();updateColorPanel();
+    toast('ファイルを閉じました');
   }
 }
 function closeSaveModal(){document.getElementById('save-modal').style.display='none';}
