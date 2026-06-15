@@ -464,7 +464,18 @@ pcWrap.addEventListener('mousedown',e=>{
 });
 window.addEventListener('mousemove',e=>{
   if(pDragging){const r=pc.getBoundingClientRect();pEnd={x:e.clientX-r.left,y:e.clientY-r.top};updateSelRect();}
-  if(shapeDragging){const p=getPos(e);shapeEnd={...p};render();}
+  if(shapeDragging&&shapeMode){
+    const p=getPos(e);
+    let ex=p.x,ey=p.y;
+    // Shiftキーで角度を0/45/90度に固定
+    if(e.shiftKey&&(shapeMode==='line'||shapeMode==='arrow')){
+      const dx=p.x-shapeStart.x,dy=p.y-shapeStart.y;
+      const angle=Math.atan2(Math.abs(dy),Math.abs(dx))*180/Math.PI;
+      if(angle<22.5){ey=shapeStart.y;}
+      else if(angle<67.5){const d=Math.max(Math.abs(dx),Math.abs(dy));ex=shapeStart.x+(dx>0?d:-d);ey=shapeStart.y+(dy>0?d:-d);}
+      else{ex=shapeStart.x;}
+    }
+    shapeEnd={x:ex,y:ey};render();}
   if(dragMode&&selected&&partStart)applyDrag(e);
 });
 window.addEventListener('mouseup',e=>{
