@@ -814,7 +814,7 @@ function initTextUI(){
   ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});
   ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
   ta.addEventListener('keydown',e=>{
-    if(e.key==='Enter'&&!e.shiftKey){
+    if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){
       e.preventDefault();
       // 音声入力中なら先に停止
       if(voiceActive&&recognition){recognition.stop();}
