@@ -1193,6 +1193,7 @@ window.addEventListener('resize',fitCanvas);
 
 // ===== INIT =====
 render();renderLayers();updateColorPanel();fitCanvas();
+saveHistory(); // 初期状態を保存（Ctrl+Zで全部消せるように）
 loadGithubSheets();
 </script>
 </body>
