@@ -327,7 +327,10 @@ document.getElementById('file-bg').addEventListener('change',e=>{
   const r=new FileReader();
   r.onload=async ev=>{
     bgImg=await loadImg(ev.target.result);
+    // 拡張子を除いたファイル名を記憶
+    currentFileName=f.name.replace(/\.[^.]+$/,'');
     render();toast('背景を設定しました','ok');
+    markClean();
   };
   r.readAsDataURL(f);e.target.value='';
 });
@@ -849,17 +852,17 @@ function editTextPart(p){
   textPos={x:p.x,y:p.y};
   const overlay=document.getElementById('text-overlay');
   overlay.style.left=p.x+'px';overlay.style.top=p.y+'px';overlay.style.display='block';
-  overlay.innerHTML=buildTextUI('更新',`commitText(true,${p.id})`,p.name);
+  overlay.innerHTML=buildTextUI('更新',`commitText(true,${p.id})`,p.textContent||p.name,p.textSize||20,p.textColor||'#000000');
   initTextUI();
 }
 
-function buildTextUI(btnLabel,btnAction,defaultVal=''){
+function buildTextUI(btnLabel,btnAction,defaultVal='',defaultSize=20,defaultColor='#000000'){
   return `<div style="pointer-events:all;">
-    <textarea id="txt-inline" rows="1" style="background:rgba(255,255,255,0.95);border:2px solid #7c5cfc;border-radius:6px;padding:4px 8px;font-size:20px;color:#000;outline:none;resize:none;min-width:80px;max-width:700px;width:auto;overflow:hidden;line-height:1.3;display:block;font-family:'Segoe UI',Arial,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.4);" placeholder="入力...">${defaultVal}</textarea>
+    <textarea id="txt-inline" rows="1" style="background:rgba(255,255,255,0.95);border:2px solid #7c5cfc;border-radius:6px;padding:4px 8px;font-size:${defaultSize}px;color:#000;outline:none;resize:none;min-width:80px;max-width:700px;width:auto;overflow:hidden;line-height:1.3;display:block;font-family:'Segoe UI',Arial,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.4);" placeholder="入力...">${defaultVal}</textarea>
     <div style="display:flex;gap:5px;margin-top:5px;align-items:center;flex-wrap:wrap;">
-      <input type="number" id="txt-size" value="20" min="8" max="200" style="width:52px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:5px;padding:3px 5px;color:#e8e8f0;font-size:12px;"/>
+      <input type="number" id="txt-size" value="${defaultSize}" min="8" max="200" style="width:52px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:5px;padding:3px 5px;color:#e8e8f0;font-size:12px;"/>
       <span style="font-size:11px;color:#8888aa;">px</span>
-      <input type="color" id="txt-color" value="#000000" style="width:28px;height:26px;border-radius:4px;border:1px solid #2a2a4a;cursor:pointer;"/>
+      <input type="color" id="txt-color" value="${defaultColor}" style="width:28px;height:26px;border-radius:4px;border:1px solid #2a2a4a;cursor:pointer;"/>
       <button id="txt-bold-btn" onclick="toggleBold(this)" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:5px;padding:3px 9px;color:#e8e8f0;font-size:13px;font-weight:700;cursor:pointer;">B</button>
       <button id="voice-btn" onclick="toggleVoice()" style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:5px;padding:3px 9px;color:#e8e8f0;font-size:13px;cursor:pointer;" title="音声入力">🎤</button>
       <button onclick="${btnAction}" style="background:#7c5cfc;border:none;border-radius:5px;padding:4px 12px;color:white;font-size:12px;cursor:pointer;font-weight:600;">${btnLabel}</button>
@@ -961,7 +964,8 @@ function startVoiceRecognition(btn){
       const w=tmp2.width,h=tmp2.height;
       const part={id:nextId++,name:content.slice(0,20),img:img2,src,
         x:textPos.x,y:textPos.y,w,h,baseW:w,baseH:h,
-        scale:100,opacity:100,rotate:0,flipH:false,isText:true};
+        scale:100,opacity:100,rotate:0,flipH:false,isText:true,
+        textContent:content,textSize:size,textColor:color};
       parts.push(part);selected=part;
       render();renderLayers();updateColorPanel();saveHistory();
       toast('テキストを追加しました','ok');
@@ -1033,9 +1037,9 @@ function commitText(isEdit=false,editId=null){
     const w=tmp.width,h=tmp.height;
     if(isEdit&&editId!=null){
       const p=parts.find(x=>x.id===editId);
-      if(p){p.img=img;p.src=src;p.name=content.slice(0,20);p.w=w;p.h=h;p.baseW=w;p.baseH=h;}
+      if(p){p.img=img;p.src=src;p.name=content.slice(0,20);p.textContent=content;p.textSize=size;p.textColor=color;p.w=w;p.h=h;p.baseW=w;p.baseH=h;}
     } else {
-      const part={id:nextId++,name:content.slice(0,20),img,src,x:textPos.x,y:textPos.y,w,h,baseW:w,baseH:h,scale:100,opacity:100,rotate:0,flipH:false,isText:true};
+      const part={id:nextId++,name:content.slice(0,20),img,src,x:textPos.x,y:textPos.y,w,h,baseW:w,baseH:h,scale:100,opacity:100,rotate:0,flipH:false,isText:true,textContent:content,textSize:size,textColor:color};
       parts.push(part);selected=part;
     }
     render();renderLayers();updateColorPanel();
@@ -1105,6 +1109,7 @@ function clearAll(){if(!confirm('すべてのパーツを削除しますか？')
 // ===== SAVE =====
 let pendingNewProject=false;
 let pendingCloseFile=false;
+let currentFileName='chart';
 
 async function exportImg(){
   const s=selected;selected=null;render();
@@ -1112,7 +1117,7 @@ async function exportImg(){
   selected=s;render();
 
   const ts=new Date().toISOString().slice(0,10).replace(/-/g,'');
-  const name=`chart_${ts}`;
+  const name=currentFileName||`chart_${ts}`;
 
   if(window.showSaveFilePicker){
     try{
