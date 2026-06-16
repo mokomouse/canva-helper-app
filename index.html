@@ -1097,11 +1097,51 @@ function clearAll(){if(!confirm('すべてのパーツを削除しますか？')
 let pendingNewProject=false;
 let pendingCloseFile=false;
 
-function exportImg(){
+async function exportImg(){
+  const s=selected;selected=null;render();
+  const dataUrl=mc.toDataURL('image/png');
+  selected=s;render();
+
   const ts=new Date().toISOString().slice(0,10).replace(/-/g,'');
-  document.getElementById('save-filename').value=`chart_${ts}`;
-  document.getElementById('save-modal').style.display='flex';
-  setTimeout(()=>{const el=document.getElementById('save-filename');el.focus();el.select();},50);
+  const name=`chart_${ts}`;
+
+  if(window.showSaveFilePicker){
+    try{
+      const blob=await(await fetch(dataUrl)).blob();
+      const fh=await window.showSaveFilePicker({
+        suggestedName:`${name}.png`,
+        types:[{description:'PNG画像',accept:{'image/png':['.png']}}],
+      });
+      const writable=await fh.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      toast(`保存しました！`,'ok');
+      markClean();
+      afterSave();
+    }catch(e){
+      if(e.name!=='AbortError')toast('保存に失敗しました','err');
+    }
+  } else {
+    // フォールバック：ファイル名入力モーダルを表示
+    document.getElementById('save-filename').value=name;
+    document.getElementById('save-modal').style.display='flex';
+    setTimeout(()=>{const el=document.getElementById('save-filename');el.focus();el.select();},50);
+  }
+}
+
+function afterSave(){
+  if(pendingNewProject){
+    pendingNewProject=false;
+    bgImg=null;parts=[];selected=null;dragMode=null;
+    render();renderLayers();updateColorPanel();
+    document.getElementById('file-bg').click();
+  }
+  if(pendingCloseFile){
+    pendingCloseFile=false;
+    bgImg=null;parts=[];selected=null;dragMode=null;
+    render();renderLayers();updateColorPanel();
+    toast('ファイルを閉じました');
+  }
 }
 async function doSave(){
   const name=document.getElementById('save-filename').value.trim()||'chart';
@@ -1109,7 +1149,6 @@ async function doSave(){
   const dataUrl=mc.toDataURL('image/png');
   selected=s;render();closeSaveModal();
 
-  // showSaveFilePickerが使えれば保存場所を選択できる
   if(window.showSaveFilePicker){
     try{
       const blob=await(await fetch(dataUrl)).blob();
@@ -1126,24 +1165,11 @@ async function doSave(){
       return;
     }
   } else {
-    // フォールバック：通常のダウンロード
     const a=document.createElement('a');a.href=dataUrl;a.download=`${name}.png`;a.click();
     toast(`「${name}.png」を保存しました！`,'ok');
   }
-
   markClean();
-  if(pendingNewProject){
-    pendingNewProject=false;
-    bgImg=null;parts=[];selected=null;dragMode=null;
-    render();renderLayers();updateColorPanel();
-    document.getElementById('file-bg').click();
-  }
-  if(pendingCloseFile){
-    pendingCloseFile=false;
-    bgImg=null;parts=[];selected=null;dragMode=null;
-    render();renderLayers();updateColorPanel();
-    toast('ファイルを閉じました');
-  }
+  afterSave();
 }
 function closeSaveModal(){document.getElementById('save-modal').style.display='none';}
 document.getElementById('save-filename').addEventListener('keydown',e=>{if(e.key==='Enter')doSave();if(e.key==='Escape')closeSaveModal();});
