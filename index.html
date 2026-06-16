@@ -211,9 +211,10 @@ let dragMode=null,dragStart={x:0,y:0},partStart=null;
 // Undo/Redo
 let history=[],historyIdx=-1;
 function saveHistory(){
-  const snap=JSON.stringify(parts.map(p=>({...p,img:null})));
+  // imgを除いてsrcだけ保存
+  const snap=parts.map(p=>({...p,img:undefined}));
   history=history.slice(0,historyIdx+1);
-  history.push({snap,parts:parts.map(p=>({...p}))});
+  history.push(snap);
   if(history.length>50)history.shift();
   historyIdx=history.length-1;
   isDirty=true;
@@ -229,13 +230,20 @@ function redo(){
   restoreHistory();
 }
 function restoreHistory(){
-  const h=history[historyIdx];
-  parts=h.parts.map(p=>({...p}));
-  // imgを再ロード
+  const snap=history[historyIdx];
+  parts=snap.map(p=>({...p}));
+  // 各パーツのimgをsrcから再ロード
+  let loaded=0;
+  if(parts.length===0){selected=null;render();renderLayers();updateColorPanel();return;}
   parts.forEach(p=>{
-    const img=new Image();img.src=p.src;img.onload=()=>{p.img=img;render();};
+    const im=new Image();
+    im.onload=()=>{
+      p.img=im;
+      loaded++;
+      if(loaded===parts.length){selected=null;render();renderLayers();updateColorPanel();}
+    };
+    im.src=p.src;
   });
-  selected=null;render();renderLayers();updateColorPanel();
 }
 
 // 変更フラグ
@@ -468,6 +476,7 @@ function commitShape(){
       scale:100,opacity:100,rotate:0,flipH:false,isShape:true};
     parts.push(part);selected=part;
     render();renderLayers();updateColorPanel();
+    saveHistory();
     toast('図形を追加しました','ok');
     shapeMode=null;
     document.querySelectorAll('.shape-btn').forEach(b=>b.classList.remove('active'));
