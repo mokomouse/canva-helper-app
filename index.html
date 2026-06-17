@@ -839,12 +839,14 @@ function openVoiceModal(){
   setTimeout(()=>toggleVoice(),150);
 }
 
+let lastTextSize=20,lastTextColor='#000000';
+
 function placeTextOverlay(canvasX,canvasY){
   textMode=false;mc.style.cursor='default';
   textPos={x:canvasX,y:canvasY};
   const overlay=document.getElementById('text-overlay');
   overlay.style.left=canvasX+'px';overlay.style.top=canvasY+'px';overlay.style.display='block';
-  overlay.innerHTML=buildTextUI('追加','commitText()');
+  overlay.innerHTML=buildTextUI('追加','commitText()','' ,lastTextSize,lastTextColor);
   initTextUI();
 }
 
@@ -947,7 +949,8 @@ function startVoiceRecognition(btn){
     const content=finalTranscript.trim();
     if(!content)return;
     const size=parseInt((document.getElementById('txt-size')||{}).value||20);
-    const color=(document.getElementById('txt-color')||{}).value||'#000000';
+    const color=(document.getElementById('txt-color')||{}).value||lastTextColor;
+    lastTextSize=size;lastTextColor=color;
     const weight=isBold?'bold':'normal';
     const font=`${weight} ${size}px 'Segoe UI',Arial,sans-serif`;
     const lines=content.split('\n');
@@ -1020,8 +1023,9 @@ function commitText(isEdit=false,editId=null){
   const ta=document.getElementById('txt-inline');
   const content=ta?ta.value.trim():'';
   if(!content){toast('テキストを入力してください','err');return;}
-  const size=parseInt(document.getElementById('txt-size').value)||32;
+  const size=parseInt(document.getElementById('txt-size').value)||20;
   const color=document.getElementById('txt-color').value;
+  lastTextSize=size;lastTextColor=color;
   const weight=isBold?'bold':'normal';
   const font=`${weight} ${size}px 'Segoe UI',Arial,sans-serif`;
   const lines=content.split('\n');
